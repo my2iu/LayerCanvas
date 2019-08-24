@@ -46,6 +46,9 @@ public class LayerCanvas
 
    /** Size of brush */
    int brushSize = 5;
+
+   /** Should the image be horizontally mirrored */
+   boolean mirrorMode = false;
    
    static enum ToolMode {
       PAINT, ERASER
@@ -190,8 +193,6 @@ public class LayerCanvas
 
    void handleBrushStroke(int mouseX, int mouseY)
    {
-      mainCtx.setFillStyle("black");
-      
       int dx = mouseX - lastMouseX;
       int dy = mouseY - lastMouseY;
       int len = (int)Math.ceil(Math.sqrt(dx * dx + dy * dy));
@@ -202,6 +203,8 @@ public class LayerCanvas
          int y = (int)(mouseY * alpha + lastMouseY * (1 - alpha));
          
          drawBrushPoint(x, y);
+         if (mirrorMode)
+            drawBrushPoint(width -x, y);
       }
       
       lastMouseX = mouseX;
@@ -290,19 +293,24 @@ public class LayerCanvas
          mainCtx.putImageData(mainData, 0, 0);
    }
    
-   @JsMethod void setBrushSize(int size)
+   @JsMethod public void setBrushSize(int size)
    {
       brushSize = size;
    }
    
-   @JsMethod void paintMode()
+   @JsMethod public void paintMode()
    {
       tool = ToolMode.PAINT;
    }
 
-   @JsMethod void eraserMode()
+   @JsMethod public void eraserMode()
    {
       tool = ToolMode.ERASER;
+   }
+   
+   @JsMethod public void setMirrorMode(boolean enable)
+   {
+      mirrorMode = enable;
    }
 
    public static int pageXRelativeToEl(int x, Element element)

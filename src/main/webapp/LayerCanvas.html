@@ -6,20 +6,9 @@
     <link type="text/css" rel="stylesheet" href="LayerCanvas.css">
     <title>Layer Canvas</title>
 
-	<style>
-	canvas#main {
-	border: 1px solid grey; 
-	touch-action: manipulation; 
-	-webkit-tap-highlight-color: transparent; 
-	user-select:none; 
-	-webkit-user-select:none;
-	width: 10vmin;
-	height: 10vmin;
-}
-	</style>
-    
     <script>
     	var layercanvas1;
+    	var layercanvas2;
     	function onGwtLoaded()
     	{
     		// Grab references to the canvas and div around the canvas
@@ -28,9 +17,18 @@
 			var div1 = document.querySelector("#divcanvas1");
 			var canvas1 = div1.querySelectorAll("canvas");
 			layercanvas1 = org.programmingbasics.layercanvas.LayerCanvas.createUi(div1, canvas1[0], canvas1[1]);
+
+			// Ditto for additional canvases
+			var div2 = document.querySelector("#divcanvas2");
+			var canvas2 = div2.querySelectorAll("canvas");
+			layercanvas2 = org.programmingbasics.layercanvas.LayerCanvas.createUi(div2, canvas2[0], canvas2[1]);
 			
 			// Set initial brush sizes etc.
 			layercanvas1.setBrushSize(5);
+			layercanvas2.setBrushSize(5);
+
+			// Enable horizontal mirroring for the main canvas to demonstrate it
+			layercanvas1.setMirrorMode(true);
     	}
     	
     </script>
@@ -40,13 +38,22 @@
     	// Just some example glue code to wire up the various buttons to the canvas
     	function brushChosen(e,size) {
     		e.preventDefault();
+    		
 			layercanvas1.setBrushSize(size);
 			layercanvas1.paintMode();    		
+
+			layercanvas2.setBrushSize(size);
+			layercanvas2.paintMode();    		
     	}
+    	
     	function eraserChosen(e,size) {
     		e.preventDefault();
+    		
 			layercanvas1.setBrushSize(size);
 			layercanvas1.eraserMode();    		
+
+			layercanvas2.setBrushSize(size);
+			layercanvas2.eraserMode();    		
     	}
     </script>
     
@@ -56,6 +63,7 @@
   	<!-- Arrange the overlay image and canvas inside a div like shown here -->
   	<!-- The div, canvas, and image should all have the same width and height -->
   	<!-- Here, the div has position: relative, but absolute is also fine -->
+  	<!-- Note that TWO canvases are needed for the layer canvas -->
   	<div style="position: relative; width: 500px; height: 300px;" id="divcanvas1">
   		<canvas width="500" height="300" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0;"></canvas>
   		<canvas width="500" height="300" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0;"></canvas>
@@ -70,5 +78,14 @@
   		<a href="#" onclick="eraserChosen(event, 10)">Medium Eraser</a>
   		<a href="#" onclick="eraserChosen(event, 5)">Little Eraser</a>
   	</div>
+  	
+  	<!-- Here's a second canvas to show that two different drawings can be handled at once -->
+  	<div style="position: relative; width: 700px; height: 300px;" id="divcanvas2">
+  		<canvas width="700" height="300" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0;"></canvas>
+  		<canvas width="700" height="300" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0;"></canvas>
+  		<img src="overlaywide.png" draggable="false" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; user-select: none; -webkit-user-select: none;">
+  	</div>
+  	
+  	
   </body>
 </html>
