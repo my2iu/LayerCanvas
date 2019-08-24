@@ -1,15 +1,20 @@
 package org.programmingbasics.layercanvas;
 
+import com.google.gwt.core.client.JavaScriptObject;
+
+import elemental.client.Browser;
 import elemental.dom.Element;
 import elemental.events.Event;
 import elemental.events.MouseEvent;
 import elemental.events.Touch;
 import elemental.events.TouchEvent;
 import elemental.events.TouchList;
+import elemental.html.ArrayBuffer;
 import elemental.html.CanvasElement;
 import elemental.html.CanvasRenderingContext2D;
 import elemental.html.DivElement;
 import elemental.html.ImageData;
+import elemental.html.ImageElement;
 import elemental.util.SettableInt;
 import jsinterop.annotations.JsMethod;
 import jsinterop.annotations.JsType;
@@ -312,6 +317,59 @@ public class LayerCanvas
    {
       mirrorMode = enable;
    }
+
+   @JsMethod public String extractPngDataUrl()
+   {
+      finalizeBrushStroke();
+      return mainCanvas.toDataURL("image/png");
+   }
+   
+   @JsMethod public void loadInPngDataUrl(String url)
+   {
+      ImageElement img = (ImageElement)Browser.getDocument().createElement("img");
+      img.setOnload((e) -> {
+         mainCtx.drawImage(img, 0, 0);
+         mainData = mainCtx.getImageData(0, 0, mainCanvas.getWidth(), mainCanvas.getHeight());
+      });
+      img.setSrc(url);
+   }
+
+   @JsMethod public void extractPngArrayBuffer(JavaScriptObject callback)
+   {
+      finalizeBrushStroke();
+      canvasToBlob(mainCanvas, callback);
+   }
+
+   private static native void canvasToBlob(CanvasElement canvas, JavaScriptObject callback) /*-{
+      canvas.toBlob(function(blob) {
+         var reader = new $wnd.FileReader();
+         reader.onload = function(e) {
+            callback(event.target.result);
+         }
+         reader.readAsArrayBuffer(blob);
+      }, "image/png");
+   }-*/;
+
+   @JsMethod public void loadInPngArrayBuffer(ArrayBuffer arrbuff)
+   {
+      arrayBufferToCanvas(arrbuff, mainCanvas, () -> {
+         mainData = mainCtx.getImageData(0, 0, mainCanvas.getWidth(), mainCanvas.getHeight());
+      });
+   }
+
+   private static native void arrayBufferToCanvas(ArrayBuffer arrbuff, CanvasElement canvas, Runnable r) /*-{
+      var blob = new Blob([arrbuff], {type:"image/png"});
+      var reader = new $wnd.FileReader();
+      reader.onload = function(e) {
+         var img = $doc.createElement("img");
+         img.onload = function(e) {
+            canvas.getContext('2d').drawImage(img, 0, 0);
+            r.@java.lang.Runnable::run()();
+         }
+         img.src = event.target.result;
+      }
+      reader.readAsDataURL(blob);
+   }-*/;
 
    public static int pageXRelativeToEl(int x, Element element)
    {

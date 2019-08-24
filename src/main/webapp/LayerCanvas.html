@@ -7,6 +7,8 @@
     <title>Layer Canvas</title>
 
     <script>
+    	<!-- Code for the LayerCanvas is available at https://github.com/my2iu/LayerCanvas --> 
+    
     	var layercanvas1;
     	var layercanvas2;
     	function onGwtLoaded()
@@ -55,6 +57,24 @@
 			layercanvas2.setBrushSize(size);
 			layercanvas2.eraserMode();    		
     	}
+    	
+    	function copyTopPictureToBottom() {
+    		// Demonstrates how to extract or load in PNG data using data URLs, which can be passed around as strings 
+			var data = layercanvas1.extractPngDataUrl();
+			layercanvas2.loadInPngDataUrl(data)
+    	}
+    	
+    	function copyBottomPictureToTop() {
+    		// Demonstrates how to extract or load in PNG data using arraybuffers, which can be passed around as binary data using XMLHttpRequest 
+			layercanvas2.extractPngArrayBuffer( function(arraybuffer) {
+			
+			
+				// We have the arraybuffer. Load it into other canvas
+				layercanvas1.loadInPngArrayBuffer(arraybuffer);
+				
+				
+			});
+    	}
     </script>
     
   </head>
@@ -77,6 +97,8 @@
   		<a href="#" onclick="eraserChosen(event, 20)">Big Eraser</a> 
   		<a href="#" onclick="eraserChosen(event, 10)">Medium Eraser</a>
   		<a href="#" onclick="eraserChosen(event, 5)">Little Eraser</a>
+  		<a href="#" onclick="copyTopPictureToBottom()">Copy top picture to bottom</a>
+  		<a href="#" onclick="copyBottomPictureToTop()">Copy bottom picture to top</a>
   	</div>
   	
   	<!-- Here's a second canvas to show that two different drawings can be handled at once -->
