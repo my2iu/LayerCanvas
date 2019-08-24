@@ -61,6 +61,7 @@
     	function copyTopPictureToBottom() {
     		// Demonstrates how to extract or load in PNG data using data URLs, which can be passed around as strings 
 			var data = layercanvas1.extractPngDataUrl();
+			layercanvas2.clear();
 			layercanvas2.loadInPngDataUrl(data)
     	}
     	
@@ -70,6 +71,7 @@
 			
 			
 				// We have the arraybuffer. Load it into other canvas
+				layercanvas1.clear();
 				layercanvas1.loadInPngArrayBuffer(arraybuffer);
 				
 				

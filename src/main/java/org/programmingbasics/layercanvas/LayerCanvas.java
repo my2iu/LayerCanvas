@@ -317,6 +317,12 @@ public class LayerCanvas
    {
       mirrorMode = enable;
    }
+   
+   @JsMethod public void clear()
+   {
+      mainCtx.clearRect(0, 0, width, height);
+      mainData = mainCtx.getImageData(0, 0, mainCanvas.getWidth(), mainCanvas.getHeight());
+   }
 
    @JsMethod public String extractPngDataUrl()
    {
