@@ -200,14 +200,30 @@ public class LayerCanvas
       lastMouseY = mouseY;
    }
    
-   void drawBrushPoint(int x, int y)
+   void drawBrushPoint(int px, int py)
    {
+      int brushRadius = 5;
       SettableInt data = (SettableInt)brushData.getData();
-      int idx = (y * width + x) * 4; 
-      data.setAt(idx, 0);
-      data.setAt(idx+1, 0);
-      data.setAt(idx+2, 0);
-      data.setAt(idx+3, 255);
+      for (int y = - brushRadius; y <= brushRadius; y++)
+      {
+         int canvasY = y + py;
+         if (canvasY < 0 || canvasY >= height) continue;
+         int rightX = (int)Math.sqrt(brushRadius * brushRadius - y * y);
+         int leftX = px-rightX;
+         rightX = px + rightX;
+         if (leftX < 0) leftX = 0;
+         if (leftX >= width) continue;
+         if (rightX >= width) rightX = width - 1;
+         if (rightX < 0) continue;
+         for (int idx = (canvasY * width + leftX) * 4; idx <= (canvasY * width + rightX) * 4; idx+= 4)
+         {
+            data.setAt(idx, 0);
+            data.setAt(idx+1, 0);
+            data.setAt(idx+2, 0);
+            data.setAt(idx+3, 255);
+         }
+      }
+      
    }
    
    void finalizeBrushStroke()
