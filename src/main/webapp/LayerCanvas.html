@@ -40,7 +40,13 @@
     	// Just some example glue code to wire up the various buttons to the canvas
     	function brushChosen(e,size) {
     		e.preventDefault();
-			layercanvas1.setBrushSize(size);    		
+			layercanvas1.setBrushSize(size);
+			layercanvas1.paintMode();    		
+    	}
+    	function eraserChosen(e,size) {
+    		e.preventDefault();
+			layercanvas1.setBrushSize(size);
+			layercanvas1.eraserMode();    		
     	}
     </script>
     
@@ -60,6 +66,9 @@
   		<a href="#" onclick="brushChosen(event, 20)">Big Brush</a> 
   		<a href="#" onclick="brushChosen(event, 10)">Medium Brush</a>
   		<a href="#" onclick="brushChosen(event, 5)">Little Brush</a>
+  		<a href="#" onclick="eraserChosen(event, 20)">Big Eraser</a> 
+  		<a href="#" onclick="eraserChosen(event, 10)">Medium Eraser</a>
+  		<a href="#" onclick="eraserChosen(event, 5)">Little Eraser</a>
   	</div>
   </body>
 </html>

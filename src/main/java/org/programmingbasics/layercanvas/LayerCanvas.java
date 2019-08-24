@@ -47,6 +47,10 @@ public class LayerCanvas
    /** Size of brush */
    int brushSize = 5;
    
+   static enum ToolMode {
+      PAINT, ERASER
+   }
+   ToolMode tool = ToolMode.PAINT;
    
    public void go()
    {
@@ -200,7 +204,6 @@ public class LayerCanvas
          drawBrushPoint(x, y);
       }
       
-      
       lastMouseX = mouseX;
       lastMouseY = mouseY;
    }
@@ -208,25 +211,52 @@ public class LayerCanvas
    void drawBrushPoint(int px, int py)
    {
       int brushRadius = brushSize;
-      SettableInt data = (SettableInt)brushData.getData();
-      for (int y = - brushRadius; y <= brushRadius; y++)
+      if (tool == ToolMode.PAINT) 
       {
-         int canvasY = y + py;
-         if (canvasY < 0 || canvasY >= height) continue;
-         int rightX = (int)Math.sqrt(brushRadius * brushRadius - y * y);
-         int leftX = px-rightX;
-         rightX = px + rightX;
-         if (leftX < 0) leftX = 0;
-         if (leftX >= width) continue;
-         if (rightX >= width) rightX = width - 1;
-         if (rightX < 0) continue;
-         for (int idx = (canvasY * width + leftX) * 4; idx <= (canvasY * width + rightX) * 4; idx+= 4)
+         SettableInt data = (SettableInt)brushData.getData();
+         for (int y = - brushRadius; y <= brushRadius; y++)
          {
-            data.setAt(idx, 0);
-            data.setAt(idx+1, 0);
-            data.setAt(idx+2, 0);
-            data.setAt(idx+3, 255);
+            int canvasY = y + py;
+            if (canvasY < 0 || canvasY >= height) continue;
+            int rightX = (int)Math.sqrt(brushRadius * brushRadius - y * y);
+            int leftX = px-rightX;
+            rightX = px + rightX;
+            if (leftX < 0) leftX = 0;
+            if (leftX >= width) continue;
+            if (rightX >= width) rightX = width - 1;
+            if (rightX < 0) continue;
+            for (int idx = (canvasY * width + leftX) * 4; idx <= (canvasY * width + rightX) * 4; idx+= 4)
+            {
+               data.setAt(idx, 0);
+               data.setAt(idx+1, 0);
+               data.setAt(idx+2, 0);
+               data.setAt(idx+3, 255);
+            }
          }
+      } 
+      else if (tool == ToolMode.ERASER)
+      {
+         SettableInt data = (SettableInt)mainData.getData();
+         for (int y = - brushRadius; y <= brushRadius; y++)
+         {
+            int canvasY = y + py;
+            if (canvasY < 0 || canvasY >= height) continue;
+            int rightX = (int)Math.sqrt(brushRadius * brushRadius - y * y);
+            int leftX = px-rightX;
+            rightX = px + rightX;
+            if (leftX < 0) leftX = 0;
+            if (leftX >= width) continue;
+            if (rightX >= width) rightX = width - 1;
+            if (rightX < 0) continue;
+            for (int idx = (canvasY * width + leftX) * 4; idx <= (canvasY * width + rightX) * 4; idx+= 4)
+            {
+               data.setAt(idx, 0);
+               data.setAt(idx+1, 0);
+               data.setAt(idx+2, 0);
+               data.setAt(idx+3, 0);
+            }
+         }
+         
       }
       
    }
@@ -254,7 +284,10 @@ public class LayerCanvas
 
    void draw()
    {
-      brushCtx.putImageData(brushData, 0, 0);
+      if (tool == ToolMode.PAINT)
+         brushCtx.putImageData(brushData, 0, 0);
+      else if (tool == ToolMode.ERASER)
+         mainCtx.putImageData(mainData, 0, 0);
    }
    
    @JsMethod void setBrushSize(int size)
@@ -262,6 +295,16 @@ public class LayerCanvas
       brushSize = size;
    }
    
+   @JsMethod void paintMode()
+   {
+      tool = ToolMode.PAINT;
+   }
+
+   @JsMethod void eraserMode()
+   {
+      tool = ToolMode.ERASER;
+   }
+
    public static int pageXRelativeToEl(int x, Element element)
    {
      // Convert pageX and pageY numbers to be relative to a certain element
