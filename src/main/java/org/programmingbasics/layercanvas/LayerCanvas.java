@@ -10,6 +10,7 @@ import elemental.html.CanvasElement;
 import elemental.html.CanvasRenderingContext2D;
 import elemental.html.DivElement;
 import elemental.html.ImageData;
+import elemental.util.SettableInt;
 import jsinterop.annotations.JsType;
 
 @JsType
@@ -25,6 +26,8 @@ public class LayerCanvas
    CanvasRenderingContext2D brushCtx;
    ImageData mainData;
    ImageData brushData;
+   int width;
+   int height;
    
    /** For remapping mouse coordinates to canvas coordinates */
    double mouseToCanvasRescale = 1.0;
@@ -44,6 +47,8 @@ public class LayerCanvas
    {
       mainCtx = (CanvasRenderingContext2D)mainCanvas.getContext("2d");
       brushCtx = (CanvasRenderingContext2D)brushCanvas.getContext("2d");
+      width = mainCanvas.getWidth();
+      height = mainCanvas.getHeight();
       mainData = mainCtx.getImageData(0, 0, mainCanvas.getWidth(), mainCanvas.getHeight());
       brushData = brushCtx.getImageData(0, 0, brushCanvas.getWidth(), brushCanvas.getHeight());
       hookEvents();
@@ -67,10 +72,10 @@ public class LayerCanvas
        {
 //         isMouseTurnOn = !data.rows[row].data[col]; 
 //         data.rows[row].data[col] = isMouseTurnOn;
-          handleBrushStroke(mouseX, mouseY);
          isTrackingMouseOnPattern = true;
          lastMouseX = mouseX;
          lastMouseY = mouseY;
+         handleBrushStroke(mouseX, mouseY);
          draw();
 //         draw();
        }
@@ -125,7 +130,7 @@ public class LayerCanvas
      eventDiv.addEventListener(Event.TOUCHMOVE, (e) -> {
        TouchEvent evt = (TouchEvent)e;
        if (!isTrackingTouchOnPattern) return;
-       Touch touch = findTouch(evt.getTouches(), trackingTouchId);
+       Touch touch = findTouch(evt.getChangedTouches(), trackingTouchId);
        if (touch == null) return;
        int mouseX = (int)(pageXRelativeToEl(touch.getPageX(), eventDiv) * mouseToCanvasRescale);
        int mouseY = (int)(pageYRelativeToEl(touch.getPageY(), eventDiv) * mouseToCanvasRescale);
@@ -137,7 +142,7 @@ public class LayerCanvas
      eventDiv.addEventListener(Event.TOUCHEND, (e) -> {
        TouchEvent evt = (TouchEvent)e;
        if (!isTrackingTouchOnPattern) return;
-       Touch touch = findTouch(evt.getTouches(), trackingTouchId);
+       Touch touch = findTouch(evt.getChangedTouches(), trackingTouchId);
        if (touch == null) return;
        int mouseX = (int)(pageXRelativeToEl(touch.getPageX(), eventDiv) * mouseToCanvasRescale);
        int mouseY = (int)(pageYRelativeToEl(touch.getPageY(), eventDiv) * mouseToCanvasRescale);
@@ -177,20 +182,58 @@ public class LayerCanvas
    void handleBrushStroke(int mouseX, int mouseY)
    {
       mainCtx.setFillStyle("black");
-      mainCtx.fillRect(mouseX, mouseY, 1, 1);
+      
+      int dx = mouseX - lastMouseX;
+      int dy = mouseY - lastMouseY;
+      int len = (int)Math.ceil(Math.sqrt(dx * dx + dy * dy));
+      double increment = 1.0 / len;
+      for (double alpha = 0; alpha <= 1; alpha += increment)
+      {
+         int x = (int)(mouseX * alpha + lastMouseX * (1 - alpha));
+         int y = (int)(mouseY * alpha + lastMouseY * (1 - alpha));
+         
+         drawBrushPoint(x, y);
+      }
+      
       
       lastMouseX = mouseX;
       lastMouseY = mouseY;
    }
    
+   void drawBrushPoint(int x, int y)
+   {
+      SettableInt data = (SettableInt)brushData.getData();
+      int idx = (y * width + x) * 4; 
+      data.setAt(idx, 0);
+      data.setAt(idx+1, 0);
+      data.setAt(idx+2, 0);
+      data.setAt(idx+3, 255);
+   }
+   
    void finalizeBrushStroke()
    {
-      
+      SettableInt mainRawData = (SettableInt)mainData.getData();
+      SettableInt brushRawData = (SettableInt)brushData.getData();
+      for (int n = 0; n < width * height * 4; n += 4) {
+         if (brushRawData.intAt(n + 3) > 0)
+         {
+            mainRawData.setAt(n, brushRawData.intAt(n));
+            mainRawData.setAt(n+1, brushRawData.intAt(n+1));
+            mainRawData.setAt(n+2, brushRawData.intAt(n+2));
+            mainRawData.setAt(n+3, brushRawData.intAt(n+3));
+         }
+         brushRawData.setAt(n, 0);
+         brushRawData.setAt(n+1, 0);
+         brushRawData.setAt(n+2, 0);
+         brushRawData.setAt(n+3, 0);
+      }
+      mainCtx.putImageData(mainData, 0, 0);
+      brushCtx.putImageData(brushData, 0, 0);
    }
 
    void draw()
    {
-      
+      brushCtx.putImageData(brushData, 0, 0);
    }
    
    public static int pageXRelativeToEl(int x, Element element)
