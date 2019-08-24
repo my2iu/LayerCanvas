@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta name = "viewport" content = "user-scalable=no, initial-scale=1">
+    <link type="text/css" rel="stylesheet" href="LayerCanvas.css">
+    <title>Layer Canvas</title>
+
+	<style>
+	canvas#main {
+	border: 1px solid grey; 
+	touch-action: manipulation; 
+	-webkit-tap-highlight-color: transparent; 
+	user-select:none; 
+	-webkit-user-select:none;
+	width: 10vmin;
+	height: 10vmin;
+}
+	</style>
+    
+    <script>
+    	var loomWidget;
+    	
+    	var layercanvas1;
+    	function onGwtLoaded()
+    	{
+    		// Grab references to the canvas and div around the canvas
+    		// (since there's an image sitting overtop the canvas, the canvas
+    		// won't receive events, so instead we grab events at the parent div)
+			var div1 = document.querySelector("#divcanvas1");
+			var canvas1 = div1.querySelectorAll("canvas");
+			layercanvas1 = org.programmingbasics.layercanvas.LayerCanvas.createUi(div1, canvas1[0], canvas1[1]);
+    	}
+    	
+    </script>
+    <script type="text/javascript" language="javascript" src="layercanvas/layercanvas.nocache.js"></script>
+    
+    
+  </head>
+
+  <body>
+  	<!-- Arrange the overlay image and canvas inside a div like shown here -->
+  	<!-- The div, canvas, and image should all have the same width and height -->
+  	<!-- Here, the div has position: relative, but absolute is also fine -->
+  	<div style="position: relative; width: 500px; height: 300px;" id="divcanvas1">
+  		<canvas width="500" height="300" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0;"></canvas>
+  		<canvas width="500" height="300" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0;"></canvas>
+  		<img src="overlay.png" draggable="false" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; user-select: none; -webkit-user-select: none;">
+  	</div>
+  </body>
+</html>
