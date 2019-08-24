@@ -11,6 +11,7 @@ import elemental.html.CanvasRenderingContext2D;
 import elemental.html.DivElement;
 import elemental.html.ImageData;
 import elemental.util.SettableInt;
+import jsinterop.annotations.JsMethod;
 import jsinterop.annotations.JsType;
 
 @JsType
@@ -42,6 +43,10 @@ public class LayerCanvas
    /** Last position of a brush stroke */
    int lastMouseX;
    int lastMouseY;
+
+   /** Size of brush */
+   int brushSize = 5;
+   
    
    public void go()
    {
@@ -202,7 +207,7 @@ public class LayerCanvas
    
    void drawBrushPoint(int px, int py)
    {
-      int brushRadius = 5;
+      int brushRadius = brushSize;
       SettableInt data = (SettableInt)brushData.getData();
       for (int y = - brushRadius; y <= brushRadius; y++)
       {
@@ -252,6 +257,11 @@ public class LayerCanvas
       brushCtx.putImageData(brushData, 0, 0);
    }
    
+   @JsMethod void setBrushSize(int size)
+   {
+      brushSize = size;
+   }
+   
    public static int pageXRelativeToEl(int x, Element element)
    {
      // Convert pageX and pageY numbers to be relative to a certain element
@@ -285,7 +295,7 @@ public class LayerCanvas
    }
 
    
-   public static LayerCanvas createUi(DivElement div, CanvasElement canvas1, CanvasElement canvas2)
+   @JsMethod public static LayerCanvas createUi(DivElement div, CanvasElement canvas1, CanvasElement canvas2)
    {
       LayerCanvas lc = new LayerCanvas();
       lc.eventDiv = div;

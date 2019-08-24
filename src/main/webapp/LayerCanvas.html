@@ -19,8 +19,6 @@
 	</style>
     
     <script>
-    	var loomWidget;
-    	
     	var layercanvas1;
     	function onGwtLoaded()
     	{
@@ -30,11 +28,21 @@
 			var div1 = document.querySelector("#divcanvas1");
 			var canvas1 = div1.querySelectorAll("canvas");
 			layercanvas1 = org.programmingbasics.layercanvas.LayerCanvas.createUi(div1, canvas1[0], canvas1[1]);
+			
+			// Set initial brush sizes etc.
+			layercanvas1.setBrushSize(5);
     	}
     	
     </script>
     <script type="text/javascript" language="javascript" src="layercanvas/layercanvas.nocache.js"></script>
     
+    <script>
+    	// Just some example glue code to wire up the various buttons to the canvas
+    	function brushChosen(e,size) {
+    		e.preventDefault();
+			layercanvas1.setBrushSize(size);    		
+    	}
+    </script>
     
   </head>
 
@@ -46,6 +54,12 @@
   		<canvas width="500" height="300" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0;"></canvas>
   		<canvas width="500" height="300" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0;"></canvas>
   		<img src="overlay.png" draggable="false" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; user-select: none; -webkit-user-select: none;">
+  	</div>
+  	
+  	<div>
+  		<a href="#" onclick="brushChosen(event, 20)">Big Brush</a> 
+  		<a href="#" onclick="brushChosen(event, 10)">Medium Brush</a>
+  		<a href="#" onclick="brushChosen(event, 5)">Little Brush</a>
   	</div>
   </body>
 </html>
