@@ -78,23 +78,39 @@
 			});
     	}
     	
+    	function updateStampPreview(previewCanvas, ctx, img, scale, rotation)
+    	{
+    		ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+			ctx.save();
+			ctx.translate(previewCanvas.width / 2, previewCanvas.height / 2);
+			ctx.scale(scale, scale);
+			ctx.rotate(rotation);
+			ctx.translate(-img.width / 2, -img.height / 2);
+			ctx.drawImage(img, 0, 0);
+			ctx.restore();
+			layercanvas1.stampMode(img, scale, rotation);
+			layercanvas2.stampMode(img, scale, rotation);
+    	}
+    	
     	function startStamp(imgSrc) {
+    		var vertSlider = document.querySelector('div.stampPreview input.verticalSlider');
+    		var horzSlider = document.querySelector('div.stampPreview input.horizontalSlider');
+
     		document.querySelector('div.stampPreview').style.display = 'block';
     		var previewCanvas = document.querySelector('div.stampPreview canvas');
     		previewCanvas.imageSmoothingEnabled = false;
     		var ctx = previewCanvas.getContext('2d');
-    		ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
     		var img = document.createElement('img');
+    		var scale = vertSlider.value;
+    		var rotation = horzSlider.value;
     		img.onload = function() {
-    			ctx.save();
-    			ctx.translate(previewCanvas.width / 2, previewCanvas.height / 2);
-    			ctx.translate(-img.width / 2, -img.height / 2);
-    			ctx.drawImage(img, 0, 0);
-    			ctx.restore();
-    			layercanvas1.stampMode(img);
-    			layercanvas2.stampMode(img);
+    			updateStampPreview(previewCanvas, ctx, img, scale, rotation);
     		};
     		img.src = imgSrc;
+    		
+    		vertSlider.oninput = function() { scale = vertSlider.value; updateStampPreview(previewCanvas, ctx, img, scale, rotation); };
+    		horzSlider.oninput = function() { rotation = horzSlider.value; updateStampPreview(previewCanvas, ctx, img, scale, rotation); };
+			
     	}
     	
     	function cancelStampPreview() {
@@ -116,7 +132,11 @@
   	</div>
   	
   	<div class="stampPreview" style="display: none;">
-  		<canvas width="300" height="300"></canvas>
+  		<div style="display: grid; grid-template-columns: auto auto; grid-auto-rows: auto; grid-gap: 5px;">
+  			<canvas width="300" height="300"></canvas>
+ 			 <input class="verticalSlider" type="range" min="0" max="5" value="1" step="any" orient="vertical" style="width: 20px; align-self: stretch; -webkit-appearance: slider-vertical">
+  			 <input class="horizontalSlider" type="range" min="-3.1415926" max="3.1415926" value="0" step="any" orient="horizontal" style="height: 20px; justify-self: stretch; -webkit-appearance: slider-horizontal">
+  		</div>
   	</div>
   	
   	<div style="display: flex; justify-content: space-between;">

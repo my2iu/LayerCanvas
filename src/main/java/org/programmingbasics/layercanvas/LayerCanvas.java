@@ -5,6 +5,7 @@ import com.google.gwt.core.client.JavaScriptObject;
 import elemental.client.Browser;
 import elemental.dom.Element;
 import elemental.events.Event;
+import elemental.events.EventListener;
 import elemental.events.MouseEvent;
 import elemental.events.Touch;
 import elemental.events.TouchEvent;
@@ -364,11 +365,18 @@ public class LayerCanvas
       tool = ToolMode.ERASER;
    }
    
-   @JsMethod public void stampMode(ImageElement img)
+   @JsMethod public void stampMode(ImageElement img, double scale, double rotation)
    {
+      if (!img.isComplete())
+      {
+         img.setOnload((evt) -> { stampMode(img, scale, rotation); });
+         return;
+      }
       tool = ToolMode.IMAGESTAMP;
       int size = Math.max(img.getWidth(), img.getHeight());
+      size = (int)Math.ceil(scale * size); 
       size *= 2;
+      if (size < 2) size = 2;
       imageStamp = (CanvasElement)Browser.getDocument().createElement("canvas");
       imageStamp.setWidth(size);
       imageStamp.setHeight(size);
@@ -377,6 +385,8 @@ public class LayerCanvas
       imgCtx.clearRect(0, 0, size, size);
       imgCtx.save();
       imgCtx.translate(size / 2, size / 2);
+      imgCtx.rotate((float)rotation);
+      imgCtx.scale((float)scale, (float)scale);
       imgCtx.translate(-img.getWidth() / 2, -img.getHeight() / 2);
       imgCtx.drawImage(img, 0, 0);
       imgCtx.restore();
