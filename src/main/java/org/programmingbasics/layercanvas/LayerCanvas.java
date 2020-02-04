@@ -63,8 +63,11 @@ public class LayerCanvas
    /** Should the image be horizontally mirrored */
    boolean mirrorMode = false;
    
+   /** Info about image to stamp */
+   CanvasElement imageStamp;
+   
    static enum ToolMode {
-      PAINT, ERASER
+      PAINT, ERASER, IMAGESTAMP
    }
    ToolMode tool = ToolMode.PAINT;
    
@@ -209,16 +212,24 @@ public class LayerCanvas
    {
       int dx = mouseX - lastMouseX;
       int dy = mouseY - lastMouseY;
-      int len = (int)Math.ceil(Math.sqrt(dx * dx + dy * dy));
-      double increment = 1.0 / len;
-      for (double alpha = 0; alpha <= 1; alpha += increment)
+      
+      if (tool == ToolMode.ERASER || tool == ToolMode.PAINT)
       {
-         int x = (int)(mouseX * alpha + lastMouseX * (1 - alpha));
-         int y = (int)(mouseY * alpha + lastMouseY * (1 - alpha));
-         
-         drawBrushPoint(x, y);
-         if (mirrorMode)
-            drawBrushPoint(width -x, y);
+         int len = (int)Math.ceil(Math.sqrt(dx * dx + dy * dy));
+         double increment = 1.0 / len;
+         for (double alpha = 0; alpha <= 1; alpha += increment)
+         {
+            int x = (int)(mouseX * alpha + lastMouseX * (1 - alpha));
+            int y = (int)(mouseY * alpha + lastMouseY * (1 - alpha));
+            
+            drawBrushPoint(x, y);
+            if (mirrorMode)
+               drawBrushPoint(width -x, y);
+         }
+      }
+      else if (tool == ToolMode.IMAGESTAMP)
+      {
+         drawBrushPoint(mouseX, mouseY);
       }
       
       lastMouseX = mouseX;
@@ -274,6 +285,12 @@ public class LayerCanvas
             }
          }
       }
+      else if (tool == ToolMode.IMAGESTAMP)
+      {
+         brushCtx.clearRect(0, 0, width, height);
+         brushCtx.drawImage(imageStamp, px - imageStamp.getWidth() / 2, py - imageStamp.getHeight() / 2);
+         brushData = brushCtx.getImageData(0, 0, brushCanvas.getWidth(), brushCanvas.getHeight());
+      }
    }
    
    void finalizeBrushStroke()
@@ -300,7 +317,7 @@ public class LayerCanvas
 
    void draw()
    {
-      if (tool == ToolMode.PAINT)
+      if (tool == ToolMode.PAINT || tool == ToolMode.IMAGESTAMP)
          brushCtx.putImageData(brushData, 0, 0);
       else if (tool == ToolMode.ERASER)
          mainCtx.putImageData(mainData, 0, 0);
@@ -347,6 +364,30 @@ public class LayerCanvas
       tool = ToolMode.ERASER;
    }
    
+   @JsMethod public void stampMode(ImageElement img)
+   {
+      tool = ToolMode.IMAGESTAMP;
+      int size = Math.max(img.getWidth(), img.getHeight());
+      size *= 2;
+      imageStamp = (CanvasElement)Browser.getDocument().createElement("canvas");
+      imageStamp.setWidth(size);
+      imageStamp.setHeight(size);
+      setCanvasImageSmoothing(imageStamp, false);
+      CanvasRenderingContext2D imgCtx = (CanvasRenderingContext2D)imageStamp.getContext("2d");
+      imgCtx.clearRect(0, 0, size, size);
+      imgCtx.save();
+      imgCtx.translate(size / 2, size / 2);
+      imgCtx.translate(-img.getWidth() / 2, -img.getHeight() / 2);
+      imgCtx.drawImage(img, 0, 0);
+      imgCtx.restore();
+      // Threshold the image to be safe
+      ImageData imgData = imgCtx.getImageData(0, 0, size, size);
+      SettableInt rawData = (SettableInt)imgData.getData();
+      for (int n = 3; n < size * size * 4; n += 4)
+         rawData.setAt(n, rawData.intAt(n) < 255 ? 0 : 255);
+      imgCtx.putImageData(imgData, 0, 0);
+   }
+   
    @JsMethod public void setMirrorMode(boolean enable)
    {
       mirrorMode = enable;
@@ -369,6 +410,7 @@ public class LayerCanvas
 
    @JsMethod public void undo()
    {
+      // TODO: cancel any in-progress brush-strokes
       UndoableCommand cmd = undos.undo();
       if (cmd == null) return;
       copyImageData(cmd.before, mainData);
@@ -378,6 +420,7 @@ public class LayerCanvas
    
    @JsMethod public void redo()
    {
+      // TODO: cancel any in-progress brush-strokes
       UndoableCommand cmd = undos.redo();
       if (cmd == null) return;
       copyImageData(cmd.after, mainData);
@@ -438,6 +481,10 @@ public class LayerCanvas
          img.src = event.target.result;
       }
       reader.readAsDataURL(blob);
+   }-*/;
+
+   private static native void setCanvasImageSmoothing(CanvasElement canvas, boolean val) /*-{
+     canvas.imageSmoothingEnabled = val;
    }-*/;
 
    public static int pageXRelativeToEl(int x, Element element)
