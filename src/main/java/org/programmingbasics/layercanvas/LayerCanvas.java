@@ -324,6 +324,13 @@ public class LayerCanvas
       mainData = mainCtx.getImageData(0, 0, mainCanvas.getWidth(), mainCanvas.getHeight());
    }
 
+   @JsMethod public void clearToBlack()
+   {
+      mainCtx.setFillStyle("black");
+      mainCtx.fillRect(0, 0, width, height);
+      mainData = mainCtx.getImageData(0, 0, mainCanvas.getWidth(), mainCanvas.getHeight());
+   }
+
    @JsMethod public String extractPngDataUrl()
    {
       finalizeBrushStroke();
