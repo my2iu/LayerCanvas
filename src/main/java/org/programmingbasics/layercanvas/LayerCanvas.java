@@ -34,7 +34,15 @@ public class LayerCanvas
    ImageData brushData;
    int width;
    int height;
+
+   /** Manages the stack of undo commands */
+   UndoStack undos = new UndoStack();
    
+   /** Keeps a copy of the current drawing when painting ends so that 
+    * an undo can be quickly made if painting is restarted.
+    */
+   ImageData mainDataBackupForUndo;
+
    /** For remapping mouse coordinates to canvas coordinates */
    double mouseToCanvasRescale = 1.0;
 
@@ -68,6 +76,7 @@ public class LayerCanvas
       height = mainCanvas.getHeight();
       mainData = mainCtx.getImageData(0, 0, mainCanvas.getWidth(), mainCanvas.getHeight());
       brushData = brushCtx.getImageData(0, 0, brushCanvas.getWidth(), brushCanvas.getHeight());
+      mainDataBackupForUndo = backupMainForUndo();
       hookEvents();
    }
    
@@ -264,9 +273,7 @@ public class LayerCanvas
                data.setAt(idx+3, 0);
             }
          }
-         
       }
-      
    }
    
    void finalizeBrushStroke()
@@ -286,6 +293,7 @@ public class LayerCanvas
          brushRawData.setAt(n+2, 0);
          brushRawData.setAt(n+3, 0);
       }
+      createUndoFromMainData();
       mainCtx.putImageData(mainData, 0, 0);
       brushCtx.putImageData(brushData, 0, 0);
    }
@@ -296,6 +304,32 @@ public class LayerCanvas
          brushCtx.putImageData(brushData, 0, 0);
       else if (tool == ToolMode.ERASER)
          mainCtx.putImageData(mainData, 0, 0);
+   }
+
+   void createUndoFromMainData()
+   {
+      ImageData before = mainDataBackupForUndo;
+      ImageData after = backupMainForUndo();
+      UndoableCommand cmd = UndoableCommand.create(before, after);
+      undos.push(cmd);
+      mainDataBackupForUndo = after;
+   }
+   
+   ImageData backupMainForUndo()
+   {
+      ImageData backupData = mainCtx.getImageData(0, 0, mainCanvas.getWidth(), mainCanvas.getHeight());
+      copyImageData(mainData, backupData);
+      return backupData;
+   }
+   
+   void copyImageData(ImageData fromData, ImageData toData)
+   {
+      SettableInt fromRawData = (SettableInt)fromData.getData();
+      SettableInt toRawData = (SettableInt)toData.getData();
+      for (int n = fromData.getData().getByteLength() - 1; n >= 0; n--)
+      {
+         toRawData.setAt(n, fromRawData.intAt(n));
+      }
    }
    
    @JsMethod public void setBrushSize(int size)
@@ -322,6 +356,7 @@ public class LayerCanvas
    {
       mainCtx.clearRect(0, 0, width, height);
       mainData = mainCtx.getImageData(0, 0, mainCanvas.getWidth(), mainCanvas.getHeight());
+      createUndoFromMainData();
    }
 
    @JsMethod public void clearToBlack()
@@ -329,8 +364,27 @@ public class LayerCanvas
       mainCtx.setFillStyle("black");
       mainCtx.fillRect(0, 0, width, height);
       mainData = mainCtx.getImageData(0, 0, mainCanvas.getWidth(), mainCanvas.getHeight());
+      createUndoFromMainData();
    }
 
+   @JsMethod public void undo()
+   {
+      UndoableCommand cmd = undos.undo();
+      if (cmd == null) return;
+      copyImageData(cmd.before, mainData);
+      mainDataBackupForUndo = cmd.before;
+      mainCtx.putImageData(mainData, 0, 0);
+   }
+   
+   @JsMethod public void redo()
+   {
+      UndoableCommand cmd = undos.redo();
+      if (cmd == null) return;
+      copyImageData(cmd.after, mainData);
+      mainDataBackupForUndo = cmd.after;
+      mainCtx.putImageData(mainData, 0, 0);
+   }
+   
    @JsMethod public String extractPngDataUrl()
    {
       finalizeBrushStroke();
@@ -343,6 +397,7 @@ public class LayerCanvas
       img.setOnload((e) -> {
          mainCtx.drawImage(img, 0, 0);
          mainData = mainCtx.getImageData(0, 0, mainCanvas.getWidth(), mainCanvas.getHeight());
+         createUndoFromMainData();
       });
       img.setSrc(url);
    }
@@ -367,6 +422,7 @@ public class LayerCanvas
    {
       arrayBufferToCanvas(arrbuff, mainCanvas, () -> {
          mainData = mainCtx.getImageData(0, 0, mainCanvas.getWidth(), mainCanvas.getHeight());
+         createUndoFromMainData();
       });
    }
 
