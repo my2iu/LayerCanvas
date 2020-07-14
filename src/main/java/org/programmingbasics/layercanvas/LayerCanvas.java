@@ -1,5 +1,8 @@
 package org.programmingbasics.layercanvas;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.google.gwt.core.client.JavaScriptObject;
 
 import elemental.client.Browser;
@@ -61,6 +64,10 @@ public class LayerCanvas
    /** Size of brush */
    int brushSize = 5;
 
+   /** When doing a flood fill, specifies the color to replace, and the color to fill */
+   int floodFillEmptyColor = 0;
+   int floodFillFillColor = 255;
+   
    /** Should the image be horizontally mirrored */
    boolean mirrorMode = false;
    
@@ -68,7 +75,7 @@ public class LayerCanvas
    CanvasElement imageStamp;
    
    static enum ToolMode {
-      PAINT, ERASER, IMAGESTAMP
+      PAINT, ERASER, IMAGESTAMP, FLOODFILL
    }
    ToolMode tool = ToolMode.PAINT;
    
@@ -232,6 +239,10 @@ public class LayerCanvas
       {
          drawBrushPoint(mouseX, mouseY);
       }
+      else if (tool == ToolMode.FLOODFILL)
+      {
+         // Flood fill only happens on mouse up in the finalizeBrushStroke step
+      }
       
       lastMouseX = mouseX;
       lastMouseY = mouseY;
@@ -292,10 +303,21 @@ public class LayerCanvas
          brushCtx.drawImage(imageStamp, px - imageStamp.getWidth() / 2, py - imageStamp.getHeight() / 2);
          brushData = brushCtx.getImageData(0, 0, brushCanvas.getWidth(), brushCanvas.getHeight());
       }
+      else if (tool == ToolMode.FLOODFILL)
+      {
+         // Flood fill only happens on mouse up in the finalizeBrushStroke step
+      }
    }
    
    void finalizeBrushStroke()
    {
+      if (tool == ToolMode.FLOODFILL)
+      {
+         // Flood fill is only activated on mouse up
+         doFloodFill(lastMouseX, lastMouseY);
+         if (mirrorMode)
+            doFloodFill(width - lastMouseX, lastMouseY);
+      }
       SettableInt mainRawData = (SettableInt)mainData.getData();
       SettableInt brushRawData = (SettableInt)brushData.getData();
       for (int n = 0; n < width * height * 4; n += 4) {
@@ -350,9 +372,119 @@ public class LayerCanvas
       }
    }
    
+   void doFloodFill(int mouseX, int mouseY)
+   {
+      // Tracks spans of pixels that need to be checked to see if they can 
+      // be filled with color
+      class Span
+      {
+         Span(int startX, int endX, int y) { this.startX = startX; this.endX = endX; this.y = y; }
+         int y;
+         int startX, endX;
+      }
+      // Spans that will have to be examined
+      List<Span> workList = new ArrayList<>();
+      workList.add(new Span(mouseX, mouseX, mouseY));
+      
+      // Repeatedly get a span, fill it in where possible, and look
+      // to create more spans to be examined later. This particular 
+      // algorithm isn't super-optimized, and may look at each pixel at
+      // least 2-3 times
+      while (!workList.isEmpty())
+      {
+         Span span = workList.remove(workList.size() - 1);
+         if (span.y < 0 || span.y >= height)
+            continue;
+         
+         // Check for extensions horizontally to the left
+         if (floodFillNeedFill(span.startX, span.y))
+         {
+            if (span.startX > 0 && floodFillNeedFill(span.startX - 1, span.y))
+            {
+               Span newSpan = new Span(span.startX - 1, span.startX - 1, span.y);
+               workList.add(newSpan);
+               for (int x = span.startX - 2; x >= 0; x--)
+               {
+                  if (!floodFillNeedFill(x, span.y))
+                     break;
+                  newSpan.startX = x;
+               }
+            }
+         }
+
+         // Check for extensions horizontally to the right
+         if (floodFillNeedFill(span.endX, span.y))
+         {
+            if (span.endX < width - 1 && floodFillNeedFill(span.endX + 1, span.y))
+            {
+               Span newSpan = new Span(span.endX + 1, span.endX + 1, span.y);
+               workList.add(newSpan);
+               for (int x = span.endX + 2; x < width; x++)
+               {
+                  if (!floodFillNeedFill(x, span.y))
+                     break;
+                  newSpan.endX = x;
+               }
+            }
+         }
+
+         // Extend span vertically, and actually fill in the span
+         Span aboveSpan = null;
+         Span belowSpan = null;
+         for (int x = span.startX; x <= span.endX; x++)
+         {
+            if (floodFillDoFill(x, span.y))
+            {
+               // Extend span above
+               if (aboveSpan == null || aboveSpan.endX != x - 1)
+               {
+                  aboveSpan = new Span(x, x, span.y - 1);
+                  workList.add(aboveSpan);
+               }
+               aboveSpan.endX = x;
+               // Extend span below
+               if (belowSpan == null || belowSpan.endX != x - 1)
+               {
+                  belowSpan = new Span(x, x, span.y + 1);
+                  workList.add(belowSpan);
+               }
+               belowSpan.endX = x;
+            }
+         }
+         // Go left
+         // Go right
+      }
+   }
+
+   // Returns true if a pixel was set at the given location 
+   private boolean floodFillDoFill(int x, int y)
+   {
+      int pos = (y * width + x) * 4 + 3;
+      if (mainData.getData().intAt(pos) == floodFillEmptyColor)
+      {
+         SettableInt mainRawData = (SettableInt)mainData.getData();
+         mainRawData.setAt(pos, floodFillFillColor);
+         return true;
+      }
+      return false;
+   }
+
+   private boolean floodFillNeedFill(int x, int y)
+   {
+      int pos = (y * width + x) * 4 + 3;
+      return (mainData.getData().intAt(pos) == floodFillEmptyColor);
+   }
+
+   
    @JsMethod public void setBrushSize(int size)
    {
       brushSize = size;
+   }
+   
+   @JsMethod public void setFloodFillColor(int c)
+   {
+      floodFillFillColor = c;
+      floodFillEmptyColor = c ^ 255;
    }
    
    @JsMethod public void paintMode()
@@ -396,6 +528,11 @@ public class LayerCanvas
       for (int n = 3; n < size * size * 4; n += 4)
          rawData.setAt(n, rawData.intAt(n) < 255 ? 0 : 255);
       imgCtx.putImageData(imgData, 0, 0);
+   }
+   
+   @JsMethod public void floodFillMode()
+   {
+      tool = ToolMode.FLOODFILL;
    }
    
    @JsMethod public void setMirrorMode(boolean enable)
