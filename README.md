@@ -10,7 +10,7 @@ LayerCanvas is currently programmed in Java and compiled to JavaScript using GWT
 mvn package
 ```
 
-Maven will then build the project. The generated JavaScript will be found in the `target/LayerCanvas-...` directory. If you want Maven to start web server so that you can immediately run the code in a browser, you can give the command
+Maven will then build the project. The generated JavaScript will be found in the `target/LayerCanvas-...` directory. The `META-INF` and `WEB-INF` directories are not required. If you want Maven to start web server so that you can immediately run the code in a browser, you can give the command
 
 ```
 mvn gwt:devmode
